@@ -25,8 +25,10 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     :return: tuple формата (день, месяц, год) или None, если дата неправильная.
     :rtype: tuple[int, int, int] | None
     """
+    DT_PRT_AM = 3
+    MONTHS_AMOUNT = 12
     date_parts = maybe_dt.split("-")
-    if len(date_parts) != 3:
+    if len(date_parts) != DT_PRT_AM:
         return None
 
     day_str, month_str, year_str = date_parts
@@ -38,7 +40,7 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     month = int(month_str)
     year = int(year_str)
 
-    if month < 1 or month > 12 or day < 1 or year < 1:
+    if month < 1 or month > MONTHS_AMOUNT or day < 1 or year < 1:
         return None
 
     days_in_month = [31, 29 if is_leap_year(year) else 28, 31, 30, 31, 30,
@@ -59,18 +61,12 @@ def extract_amount(amount_str: str) -> float | None:
     """
     amount_str = amount_str.replace(",", ".")
 
-    if not amount_str:
-        return None
-
-    if amount_str.count(".") > 1:
+    if not amount_str or amount_str.count(".") > 1 or amount_str.startswith(".") or (amount_str.endswith(".") and len(amount_str) > 1):
         return None
 
     for character in amount_str:
         if not (character.isdigit() or character == "."):
             return None
-
-    if amount_str.startswith(".") or (amount_str.endswith(".") and len(amount_str) > 1):
-        return None
 
     if "." in amount_str:
         parts = amount_str.split(".")
@@ -78,13 +74,9 @@ def extract_amount(amount_str: str) -> float | None:
             return None
         integer_part, fractional_part = parts
 
-        if not fractional_part:
+        if not fractional_part or (integer_part and not integer_part.isdigit()) or not fractional_part.isdigit():
             return None
 
-        if integer_part and not integer_part.isdigit():
-            return None
-        if not fractional_part.isdigit():
-            return None
     else:
         if not amount_str.isdigit():
             return None
