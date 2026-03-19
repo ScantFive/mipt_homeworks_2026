@@ -25,7 +25,7 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     :return: tuple формата (день, месяц, год) или None, если дата неправильная.
     :rtype: tuple[int, int, int] | None
     """
-    date_parts = maybe_dt.split('-')
+    date_parts = maybe_dt.split("-")
     if len(date_parts) != 3:
         return None
 
@@ -57,23 +57,23 @@ def extract_amount(amount_str: str) -> float | None:
     :param str amount_str: Строка с числом
     :return: Число или None если не удалось
     """
-    amount_str = amount_str.replace(',', '.')
+    amount_str = amount_str.replace(",", ".")
 
     if not amount_str:
         return None
 
-    if amount_str.count('.') > 1:
+    if amount_str.count(".") > 1:
         return None
 
     for character in amount_str:
-        if not (character.isdigit() or character == '.'):
+        if not (character.isdigit() or character == "."):
             return None
 
-    if amount_str.startswith('.') or (amount_str.endswith('.') and len(amount_str) > 1):
+    if amount_str.startswith(".") or (amount_str.endswith(".") and len(amount_str) > 1):
         return None
 
-    if '.' in amount_str:
-        parts = amount_str.split('.')
+    if "." in amount_str:
+        parts = amount_str.split(".")
         if len(parts) != 2:
             return None
         integer_part, fractional_part = parts
@@ -145,7 +145,7 @@ def main() -> None:
 
             category, amount_str, date_str = line_parts[1], line_parts[2], line_parts[3]
 
-            if not category or ' ' in category or '.' in category or ',' in category:
+            if not category or " " in category or "." in category or "," in category:
                 print(UNKNOWN_COMMAND_MSG)
                 continue
 
@@ -237,7 +237,7 @@ def main() -> None:
                     if amount.is_integer():
                         print(f"{i}. {category}: {int(amount)}")
                     else:
-                        formatted_amount = f"{amount:.2f}".rstrip('0').rstrip('.')
+                        formatted_amount = f"{amount:.2f}".rstrip("0").rstrip(".")
                         print(f"{i}. {category}: {formatted_amount}")
             else:
                 print()
