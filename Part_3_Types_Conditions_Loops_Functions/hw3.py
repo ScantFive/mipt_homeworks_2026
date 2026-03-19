@@ -25,10 +25,10 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     :return: tuple формата (день, месяц, год) или None, если дата неправильная.
     :rtype: tuple[int, int, int] | None
     """
-    DT_PRT_AM = 3
-    MONTHS_AMOUNT = 12
+    dt_prt_am = 3
+    months_amount = 12
     date_parts = maybe_dt.split("-")
-    if len(date_parts) != DT_PRT_AM:
+    if len(date_parts) != dt_prt_am:
         return None
 
     day_str, month_str, year_str = date_parts
@@ -40,7 +40,7 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     month = int(month_str)
     year = int(year_str)
 
-    if month < 1 or month > MONTHS_AMOUNT or day < 1 or year < 1:
+    if month < 1 or month > months_amount or day < 1 or year < 1:
         return None
 
     days_in_month = [31, 29 if is_leap_year(year) else 28, 31, 30, 31, 30,
@@ -54,14 +54,18 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
 
 def extract_amount(amount_str: str) -> float | None:
     """
-    Парсит число с запятой или точкой как разделителем.
+    Парсит число with запятой или точкой как разделителем.
 
-    :param str amount_str: Строка с числом
+    :param str amount_str: Строка with числом
     :return: Число или None если не удалось
     """
+    prt_am = 2
     amount_str = amount_str.replace(",", ".")
 
-    if not amount_str or amount_str.count(".") > 1 or amount_str.startswith(".") or (amount_str.endswith(".") and len(amount_str) > 1):
+    if (not amount_str or amount_str.count(".") > 1
+            or amount_str.startswith(".")
+            or (amount_str.endswith(".") and len(amount_str) > 1)):
+
         return None
 
     for character in amount_str:
@@ -70,23 +74,24 @@ def extract_amount(amount_str: str) -> float | None:
 
     if "." in amount_str:
         parts = amount_str.split(".")
-        if len(parts) != 2:
+        if len(parts) != prt_am:
             return None
         integer_part, fractional_part = parts
 
         if not fractional_part or (integer_part and not integer_part.isdigit()) or not fractional_part.isdigit():
             return None
 
-    else:
-        if not amount_str.isdigit():
+    elif not amount_str.isdigit():
             return None
 
-    amount = float(amount_str)
-    return amount
+    return float(amount_str)
 
 
 def main() -> None:
     """Ваш код здесь"""
+    inm_prts = 3
+    cst_prts = 4
+    stts_prts = 2
 
     incomes_by_date: dict[tuple[int, int, int], float] = {}
     costs_by_category: dict[str, dict[tuple[int, int, int], float]] = {}
@@ -104,7 +109,7 @@ def main() -> None:
         command = line_parts[0]
 
         if command == "income":
-            if len(line_parts) != 3:
+            if len(line_parts) != inm_prts:
                 print(UNKNOWN_COMMAND_MSG)
                 continue
 
@@ -131,7 +136,7 @@ def main() -> None:
             print(OP_SUCCESS_MSG)
 
         elif command == "cost":
-            if len(line_parts) != 4:
+            if len(line_parts) != cst_prts:
                 print(UNKNOWN_COMMAND_MSG)
                 continue
 
@@ -165,7 +170,7 @@ def main() -> None:
             print(OP_SUCCESS_MSG)
 
         elif command == "stats":
-            if len(line_parts) != 2:
+            if len(line_parts) != stts_prts:
                 print(UNKNOWN_COMMAND_MSG)
                 continue
 
