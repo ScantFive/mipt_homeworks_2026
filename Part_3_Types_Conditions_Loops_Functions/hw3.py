@@ -29,17 +29,20 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     if len(date_parts) != 3:
         return None
 
-    day, month, year = date_parts
+    day_str, month_str, year_str = date_parts
 
-    if not (day.isdigit() and month.isdigit() and year.isdigit()):
+    if not (day_str.isdigit() and month_str.isdigit() and year_str.isdigit()):
         return None
 
-    day, month, year = [int(x) for x in date_parts]
+    day = int(day_str)
+    month = int(month_str)
+    year = int(year_str)
 
     if month < 1 or month > 12 or day < 1 or year < 1:
         return None
 
-    days_in_month = [31, 29 if is_leap_year(year) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    days_in_month = [31, 29 if is_leap_year(year) else 28, 31, 30, 31, 30,
+                     31, 31, 30, 31, 30, 31]
 
     if day > days_in_month[month - 1]:
         return None
@@ -55,29 +58,53 @@ def extract_amount(amount_str: str) -> float | None:
     :return: Число или None если не удалось
     """
     amount_str = amount_str.replace(',', '.')
+
+    if not amount_str:
+        return None
+
     if amount_str.count('.') > 1:
         return None
+
     for character in amount_str:
         if not (character.isdigit() or character == '.'):
+            return None
+
+    if amount_str.startswith('.') or (amount_str.endswith('.') and len(amount_str) > 1):
+        return None
+
+    if '.' in amount_str:
+        parts = amount_str.split('.')
+        if len(parts) != 2:
+            return None
+        integer_part, fractional_part = parts
+
+        if not fractional_part:
+            return None
+
+        if integer_part and not integer_part.isdigit():
+            return None
+        if not fractional_part.isdigit():
+            return None
+    else:
+        if not amount_str.isdigit():
             return None
 
     amount = float(amount_str)
     return amount
 
 
-def income_handler(amount: float, income_date: str) -> str:
-    return f"{OP_SUCCESS_MSG} {amount=} {income_date=}"
-
-
 def main() -> None:
     """Ваш код здесь"""
 
-    incomes_by_date = {}
-    costs_by_category = {}
+    incomes_by_date: dict[tuple[int, int, int], float] = {}
+    costs_by_category: dict[str, dict[tuple[int, int, int], float]] = {}
 
     while True:
+        try:
+            line = input().strip()
+        except EOFError:
+            break
 
-        line = input().strip()
         if not line:
             continue
 
@@ -162,7 +189,7 @@ def main() -> None:
             total_capital = 0.0
             month_incomes = 0.0
             month_costs = 0.0
-            month_costs_by_category = {}
+            month_costs_by_category: dict[str, float] = {}
 
             for date_key, amount in incomes_by_date.items():
                 year, month, day = date_key
@@ -180,7 +207,10 @@ def main() -> None:
                 for date_key, amount in transactions.items():
                     year, month, day = date_key
 
-                    if year < target_year or (year == target_year and month < target_month) or (year == target_year and month == target_month and day <= target_day):
+                    if (year < target_year or
+                            (year == target_year and month < target_month) or
+                            (year == target_year and month == target_month and day <= target_day)):
+
                         total_capital -= amount
 
                         if month == target_month and year == target_year:
