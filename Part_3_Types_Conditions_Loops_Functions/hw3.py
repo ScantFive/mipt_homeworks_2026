@@ -9,15 +9,15 @@ NOT_EXISTS_CATEGORY = "Category not exists!"
 OP_SUCCESS_MSG = "Added"
 
 EXPENSE_CATEGORIES = {
-    "Food": ("Supermarket", "Restaurants", "FastFood", "Coffee", "Delivery"),
-    "Transport": ("Taxi", "Public transport", "Gas", "Car service"),
-    "Housing": ("Rent", "Utilities", "Repairs", "Furniture"),
-    "Health": ("Pharmacy", "Doctors", "Dentist", "Lab tests"),
-    "Entertainment": ("Movies", "Concerts", "Games", "Subscriptions"),
-    "Clothing": ("Outerwear", "Casual", "Shoes", "Accessories"),
-    "Education": ("Courses", "Books", "Tutors"),
-    "Communications": ("Mobile", "Internet", "Subscriptions"),
-    "Other": (),
+    "Food": ["Supermarket", "Restaurants", "FastFood", "Coffee", "Delivery"],
+    "Transport": ["Taxi", "Public transport", "Gas", "Car service"],
+    "Housing": ["Rent", "Utilities", "Repairs", "Furniture"],
+    "Health": ["Pharmacy", "Doctors", "Dentist", "Lab tests"],
+    "Entertainment": ["Movies", "Concerts", "Games", "Subscriptions"],
+    "Clothing": ["Outerwear", "Casual", "Shoes", "Accessories"],
+    "Education": ["Courses", "Books", "Tutors"],
+    "Communications": ["Mobile", "Internet", "Subscriptions"],
+    "Other": [],
 }
 
 financial_transactions_storage: list[dict[str, Any]] = []
@@ -25,10 +25,10 @@ financial_transactions_storage: list[dict[str, Any]] = []
 
 def is_leap_year(year: int) -> bool:
     """
-    Для заданного года определяет: високосный (True) или невисокосный (False).
+    For a given year, determines whether it is a leap year (True) or a common year (False).
 
-    :param int year: Проверяемый год
-    :return: Значение високосности.
+    :param int year: The year to test
+    :return: The leap year value.
     :rtype: bool
     """
     return (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0)
@@ -36,22 +36,26 @@ def is_leap_year(year: int) -> bool:
 
 def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     """
-    Парсит дату формата DD-MM-YYYY из строки.
+    Parses a date in DD-MM-YYYY format from a string.
 
-    :param str maybe_dt: Проверяемая строка
-    :return: tuple формата (день, месяц, год) или None, если дата неправильная.
+    :param str maybe_dt: The string to test
+    :return: A tuple of the format (day, month, year) or None if the date is invalid.
     :rtype: tuple[int, int, int] | None
     """
+    parts_am = 3
+    month_am = 12
     parts = maybe_dt.split("-")
-    if len(parts) != 3:
+    if len(parts) != parts_am:
         return None
 
-    try:
-        day, month, year = int(parts[0]), int(parts[1]), int(parts[2])
-    except ValueError:
+    day_str, month_str, year_str = parts
+
+    if not (day_str.isdigit() and month_str.isdigit() and year_str.isdigit()):
         return None
 
-    if month < 1 or month > 12:
+    day, month, year = int(day_str), int(month_str), int(year_str)
+
+    if month < 1 or month > month_am:
         return None
 
     days_in_month = [31, 29 if is_leap_year(year) else 28, 31, 30, 31, 30,
@@ -65,25 +69,32 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
 
 def parse_amount(amount_str: str) -> float | None:
     """
-    Парсит строку с числом (заменяет запятую на точку).
+    Parses a string containing a number (replacing commas with periods).
 
-    :param str amount_str: Строка с числом
-    :return: Число с плавающей точкой или None, если не удалось распарсить
+    :param str amount_str: String containing the number
+    :return: Floating-point number or None if parsing failed
     :rtype: float | None
     """
-    try:
-        amount_str = amount_str.replace(",", ".")
-        return float(amount_str)
-    except ValueError:
+    amount_str = amount_str.replace(",", ".")
+
+    if amount_str.count(".") > 1:
         return None
+
+    for character in amount_str:
+        if not (character.isdigit() or character == "."):
+            return None
+
+
+    return float(amount_str)
+
 
 
 def is_valid_category(category_name: str) -> bool:
     """
-    Проверяет существование категории.
+    Checks if a category exists.
 
-    :param str category_name: Полное имя категории (Common::Target)
-    :return: Существует ли категория
+    :param str category_name: Full name of the category (Common::Target)
+    :return: Whether the category exists
     :rtype: bool
     """
     if "::" not in category_name:
@@ -102,18 +113,14 @@ def is_valid_category(category_name: str) -> bool:
 
 def get_all_categories() -> list[str]:
     """
-    Возвращает список всех доступных категорий.
+    Returns a list of all available categories.
 
-    :return: Список строк с категориями
+    :return: List of strings with categories
     :rtype: list[str]
     """
     categories = []
     for common, targets in EXPENSE_CATEGORIES.items():
-        if targets:
-            for target in targets:
-                categories.append(f"{common}::{target}")
-        else:
-            categories.append(f"{common}::")
+        categories.extend([f"{common}::{target}" for target in targets] or [f"{common}::"])
     return sorted(categories)
 
 
@@ -137,10 +144,10 @@ def cost_categories_handler() -> str:
 
 def calculate_capital_up_to_date(target_date: tuple[int, int, int]) -> float:
     """
-    Рассчитывает общий капитал на указанную дату.
+    Calculates total equity on the specified date.
 
-    :param tuple target_date: Целевая дата (день, месяц, год)
-    :return: Общий капитал
+    :param tuple target_date: Target date (day, month, year)
+    :return: Total equity
     :rtype: float
     """
     total = 0.0
@@ -163,11 +170,11 @@ def calculate_capital_up_to_date(target_date: tuple[int, int, int]) -> float:
 
 def get_month_transactions(month: int, year: int) -> list[dict[str, Any]]:
     """
-    Возвращает транзакции за указанный месяц.
+    Returns transactions for the specified month.
 
-    :param int month: Месяц
-    :param int year: Год
-    :return: Список транзакций за месяц
+    :param int month: Month
+    :param int year: Year
+    :return: List of transactions for the month
     :rtype: list[dict[str, Any]]
     """
     month_transactions = []
@@ -177,7 +184,7 @@ def get_month_transactions(month: int, year: int) -> list[dict[str, Any]]:
         if trans_date is None:
             continue
 
-        t_day, t_month, t_year = trans_date
+        _, t_month, t_year = trans_date
 
         if t_month == month and t_year == year:
             month_transactions.append(transaction)
@@ -186,58 +193,51 @@ def get_month_transactions(month: int, year: int) -> list[dict[str, Any]]:
 
 
 def stats_handler(report_date: str) -> str:
-    date_tuple = extract_date(report_date)
-    if date_tuple is None:
+    if not (date := extract_date(report_date)):
         return INCORRECT_DATE_MSG
 
-    day, month, year = date_tuple
+    total = calculate_capital_up_to_date(date)
 
-    total_capital = calculate_capital_up_to_date(date_tuple)
-    month_transactions = get_month_transactions(month, year)
+    income = expenses = 0.0
+    cats = {}
 
-    month_income = 0.0
-    month_expenses = 0.0
-    expenses_by_category = {}
-
-    for trans in month_transactions:
-        amount = trans["amount"]
-        if amount > 0:
-            month_income += amount
+    for t in get_month_transactions(date[1], date[2]):
+        amt = t["amount"]
+        if amt > 0:
+            income += amt
         else:
-            month_expenses += abs(amount)
-            if "category" in trans:
-                category = trans["category"]
-                expenses_by_category[category] = expenses_by_category.get(category, 0) + abs(amount)
+            expenses -= amt
+            if "category" in t:
+                cats[t["category"]] = cats.get(t["category"], 0) - amt
 
-    month_result = month_income - month_expenses
-    result_type = "profit" if month_result >= 0 else "loss"
+    diff = income - expenses
+    type_ = "profit" if diff >= 0 else "loss"
 
-    result = [f"Your statistics as of {report_date}:"]
-    result.append(f"Total capital: {total_capital:.2f} rubles")
-    result.append(f"This month, the {result_type} amounted to {abs(month_result):.2f} rubles.")
-    result.append(f"Income: {month_income:.2f} rubles")
-    result.append(f"Expenses: {month_expenses:.2f} rubles")
-    result.append("")
-    result.append("Details (category: amount):")
+    out = [f"Your statistics as of {report_date}:",
+           f"Total capital: {total:.2f} rubles",
+           f"This month, the {type_} amounted to {abs(diff):.2f} rubles.",
+           f"Income: {income:.2f} rubles",
+           f"Expenses: {expenses:.2f} rubles",
+           "",
+           "Details (category: amount):"]
 
-    if expenses_by_category:
-        sorted_categories = sorted(expenses_by_category.items())
-        for i, (category, amount) in enumerate(sorted_categories, 1):
-            amount_str = f"{amount:,.0f}".replace(",", " ")
-            result.append(f"{i}. {category}: {amount_str}")
+    if cats:
+        out.extend(f"{i}. {cat}: {amt:,.0f}".replace(",", " ")
+                   for i, (cat, amt) in enumerate(sorted(cats.items()), 1))
 
-    return "\n".join(result)
+    return "\n".join(out)
 
 
 def validate_amount(amount_str: str) -> float | None:
-    """Проверяет корректность суммы и возвращает её или None."""
+    """Checks if the sum is correct and returns it or None"""
     amount = parse_amount(amount_str)
     return amount if amount is not None and amount > 0 else None
 
 
 def handle_income(parts: list[str]) -> None:
-    """Обработчик команды income."""
-    if len(parts) != 3:
+    """Income command handler"""
+    parts_am = 3
+    if len(parts) != parts_am:
         print(UNKNOWN_COMMAND_MSG)
         return
 
@@ -253,12 +253,14 @@ def handle_income(parts: list[str]) -> None:
 
 
 def handle_cost(parts: list[str]) -> None:
-    """Обработчик команды cost."""
-    if len(parts) == 2 and parts[1].lower() == "categories":
+    """Cost command handler"""
+    parts_am_first = 2
+    parts_am_second = 4
+    if len(parts) == parts_am_first and parts[1].lower() == "categories":
         print(cost_categories_handler())
         return
 
-    if len(parts) != 4:
+    if len(parts) != parts_am_second:
         print(UNKNOWN_COMMAND_MSG)
         return
 
@@ -280,8 +282,9 @@ def handle_cost(parts: list[str]) -> None:
 
 
 def handle_stats(parts: list[str]) -> None:
-    """Обработчик команды stats."""
-    if len(parts) != 2:
+    """Stats command handler"""
+    parts_am = 2
+    if len(parts) != parts_am:
         print(UNKNOWN_COMMAND_MSG)
         return
 
@@ -293,23 +296,25 @@ def handle_stats(parts: list[str]) -> None:
 
 
 def main() -> None:
-    """Основная функция программы."""
-    try:
-        for line in iter(input, ""):
-            if not (parts := line.strip().split()):
-                continue
+    """The main function of the program"""
+    while True:
+        command_line = input()
+        if not command_line:
+            continue
 
-            match parts[0].lower():
-                case "income":
-                    handle_income(parts)
-                case "cost":
-                    handle_cost(parts)
-                case "stats":
-                    handle_stats(parts)
-                case _:
-                    print(UNKNOWN_COMMAND_MSG)
-    except EOFError:
-        pass
+        parts = command_line.strip().split()
+        if not parts:
+            continue
+
+        match parts[0].lower():
+            case "income":
+                handle_income(parts)
+            case "cost":
+                handle_cost(parts)
+            case "stats":
+                handle_stats(parts)
+            case _:
+                print(UNKNOWN_COMMAND_MSG)
 
 
 if __name__ == "__main__":
