@@ -9,15 +9,15 @@ NOT_EXISTS_CATEGORY = "Category not exists!"
 OP_SUCCESS_MSG = "Added"
 
 EXPENSE_CATEGORIES = {
-    "Food": ["Supermarket", "Restaurants", "FastFood", "Coffee", "Delivery"],
-    "Transport": ["Taxi", "Public transport", "Gas", "Car service"],
-    "Housing": ["Rent", "Utilities", "Repairs", "Furniture"],
-    "Health": ["Pharmacy", "Doctors", "Dentist", "Lab tests"],
-    "Entertainment": ["Movies", "Concerts", "Games", "Subscriptions"],
-    "Clothing": ["Outerwear", "Casual", "Shoes", "Accessories"],
-    "Education": ["Courses", "Books", "Tutors"],
-    "Communications": ["Mobile", "Internet", "Subscriptions"],
-    "Other": [],
+    "Food": ("Supermarket", "Restaurants", "FastFood", "Coffee", "Delivery"),
+    "Transport": ("Taxi", "Public transport", "Gas", "Car service"),
+    "Housing": ("Rent", "Utilities", "Repairs", "Furniture"),
+    "Health": ("Pharmacy", "Doctors", "Dentist", "Lab tests"),
+    "Entertainment": ("Movies", "Concerts", "Games", "Subscriptions"),
+    "Clothing": ("Outerwear", "Casual", "Shoes", "Accessories"),
+    "Education": ("Courses", "Books", "Tutors"),
+    "Communications": ("Mobile", "Internet", "Subscriptions"),
+    "Other": (),
 }
 
 financial_transactions_storage: list[dict[str, Any]] = []
