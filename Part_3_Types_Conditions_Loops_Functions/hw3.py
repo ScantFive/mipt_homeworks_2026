@@ -110,12 +110,27 @@ def get_all_categories() -> list[str]:
 
 def income_handler(amount: float, income_date: str) -> str:
     """Добавляет доход."""
+    if amount <= 0:
+        return NONPOSITIVE_VALUE_MSG
+
+    if extract_date(income_date) is None:
+        return INCORRECT_DATE_MSG
+
     financial_transactions_storage.append({"amount": amount, "date": income_date})
     return OP_SUCCESS_MSG
 
 
 def cost_handler(category_name: str, amount: float, income_date: str) -> str:
     """Добавляет расход."""
+    if not is_valid_category(category_name):
+        return NOT_EXISTS_CATEGORY
+
+    if amount <= 0:
+        return NONPOSITIVE_VALUE_MSG
+
+    if extract_date(income_date) is None:
+        return INCORRECT_DATE_MSG
+
     financial_transactions_storage.append({
         "category": category_name,
         "amount": -amount,
@@ -227,14 +242,6 @@ def main() -> None:
                 print(NONPOSITIVE_VALUE_MSG)
                 continue
 
-            if amount <= 0:
-                print(NONPOSITIVE_VALUE_MSG)
-                continue
-
-            if extract_date(parts[2]) is None:
-                print(INCORRECT_DATE_MSG)
-                continue
-
             print(income_handler(amount, parts[2]))
 
         elif command == "cost":
@@ -246,23 +253,9 @@ def main() -> None:
                 print(UNKNOWN_COMMAND_MSG)
                 continue
 
-            if not is_valid_category(parts[1]):
-                print(NOT_EXISTS_CATEGORY)
-                print("Available categories:")
-                print(cost_categories_handler())
-                continue
-
             amount = parse_amount(parts[2])
             if amount is None:
                 print(NONPOSITIVE_VALUE_MSG)
-                continue
-
-            if amount <= 0:
-                print(NONPOSITIVE_VALUE_MSG)
-                continue
-
-            if extract_date(parts[3]) is None:
-                print(INCORRECT_DATE_MSG)
                 continue
 
             print(cost_handler(parts[1], amount, parts[3]))
@@ -270,10 +263,6 @@ def main() -> None:
         elif command == "stats":
             if len(parts) != 2:
                 print(UNKNOWN_COMMAND_MSG)
-                continue
-
-            if extract_date(parts[1]) is None:
-                print(INCORRECT_DATE_MSG)
                 continue
 
             print(stats_handler(parts[1]))
