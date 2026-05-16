@@ -84,25 +84,53 @@ class LRUPolicy(Policy[K]):
 @dataclass
 class LFUPolicy(Policy[K]):
     capacity: int = 5
+    _last_key: K | None = None
     _key_counter: dict[K, int] = field(default_factory=dict, init=False)
 
     def register_access(self, key: K) -> None:
-        self._key_counter[key] = self._key_counter.get(key, 0) + 1
+        if key in self._key_counter:
+            current_count = self._key_counter.get(key, 0)
+            self._key_counter.update({key: current_count + 1})
+            self._last_key = None
+            return
+
+        if len(self._key_counter) >= self.capacity and self._key_counter:
+            self._last_key = min(self._key_counter, key=self._get_access)
+        else:
+            self._last_key = None
+
+        self._key_counter[key] = 1
 
     def get_key_to_evict(self) -> K | None:
-        if len(self._key_counter) > self.capacity:
-            return min(self._key_counter, key=self._key_counter.get)
-        return None
+        if len(self._key_counter) < self.capacity:
+            return None
+        candidates = [k for k in self._key_counter if k != self._last_key]
+        if not candidates:
+            return self._last_key
+
+        return min(candidates, key=lambda k: self._key_counter[k])
 
     def remove_key(self, key: K) -> None:
         self._key_counter.pop(key, None)
+        if key == self._last_key:
+            self._last_key = None
 
     def clear(self) -> None:
         self._key_counter.clear()
+        self._last_key = None
 
     @property
     def has_keys(self) -> bool:
         return len(self._key_counter) > 0
+
+    def _candidate(self) -> K | None:
+        if self._last_key not in self._key_counter:
+            self._last_key = None
+        return self._last_key
+
+    def _get_access(self, key: K) -> int:
+        return self._key_counter[key]
+
 
 
 class MIPTCache(Cache[K, V]):
