@@ -32,7 +32,7 @@ def _seconds_passed(time: datetime) -> float:
     return (datetime.now(UTC) - time).total_seconds()
 
 
-def _validate(critical_count, time_to_recover):
+def _validate(critical_count, time_to_recover) -> None:
     errors = []
     if not isinstance(critical_count, int) or critical_count <= 0:
         errors.append(ValueError(INVALID_CRITICAL_COUNT))
@@ -43,7 +43,7 @@ def _validate(critical_count, time_to_recover):
 
 
 class CircuitBreaker:
-    def __init__(self, critical_count=5, time_to_recover=30, triggers_on=Exception):
+    def __init__(self, critical_count=5, time_to_recover=30, triggers_on=Exception) -> None:
         _validate(critical_count, time_to_recover)
         self.critical_count = critical_count
         self.time_to_recover = time_to_recover
@@ -51,27 +51,39 @@ class CircuitBreaker:
         self._failures = 0
         self.time_of_closure = None
 
-    def __call__(self, func):
+    def _is_blocked(self) -> bool:
+        if self.time_of_closure is None:
+            return False
+        if _seconds_passed(self.time_of_closure) < self.time_to_recover:
+            return True
+        self._failures = 0
+        self.time_of_closure = None
+        return False
+
+    def _handle_success(self) -> None:
+        self._failures = 0
+
+    def _handle_failure(self, func_name: str, exc: Exception) -> None:
+        self._failures += 1
+        if self._failures >= self.critical_count:
+            self.time_of_closure = datetime.now(UTC)
+            raise BreakerError(func_name, self.time_of_closure) from exc
+
+    def __call__(self, func: CallableWithMeta[P, R_co]) -> CallableWithMeta[P, R_co]:
         func_name = f"{func.__module__}.{func.__name__}"
 
         @wraps(func)
-        def wrapper(*args, **kwargs):
-            if self.time_of_closure is not None:
-                if _seconds_passed(self.time_of_closure) < self.time_to_recover:
-                    raise BreakerError(func_name, self.time_of_closure)
-                self._failures = 0
-                self.time_of_closure = None
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R_co:
+            if self._is_blocked() and self.time_of_closure is not None:
+                raise BreakerError(func_name, self.time_of_closure)
 
             try:
                 result = func(*args, **kwargs)
             except self.triggers_on as exc:
-                self._failures += 1
-                if self._failures >= self.critical_count:
-                    self.time_of_closure = datetime.now(UTC)
-                    raise BreakerError(func_name, self.time_of_closure) from exc
+                self._handle_failure(func_name, exc)
                 raise
             else:
-                self._failures = 0
+                self._handle_success()
                 return result
 
         return wrapper
