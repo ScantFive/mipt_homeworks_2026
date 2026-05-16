@@ -84,39 +84,39 @@ class LRUPolicy(Policy[K]):
 @dataclass
 class LFUPolicy(Policy[K]):
     capacity: int = 5
-    _counter: dict[K, int] = field(default_factory=dict, init=False)
-    _key_order: dict[K, int] = field(default_factory=dict, init=False)
-    _key_number_counter: int = field(default=0, init=False)
+    _key_counter: dict[K, int] = field(default_factory=dict, init=False)
+    _key_to_evict: K | None = field(default=None, init=False)
 
     def register_access(self, key: K) -> None:
-        if key not in self._counter:
-            self._key_order[key] = self._key_number_counter
-            self._key_number_counter += 1
-            self._counter[key] = 0
+        if key in self._key_counter:
+            self._key_counter[key] += 1
+            self._key_to_evict = None
+            return
 
-        self._counter[key] += 1
+        if len(self._key_counter) >= self.capacity and self._key_counter:
+            self._key_to_evict = min(
+                self._key_counter, key=lambda k: self._key_counter[k]
+            )
+        else:
+            self._key_to_evict = None
+
+        self._key_counter[key] = 1
 
     def get_key_to_evict(self) -> K | None:
-        if len(self._counter) <= self.capacity:
-            return None
-
-        return min(
-            self._counter.keys(),
-            key=lambda k: (self._counter[k], self._key_order[k])
-        )
+        return self._key_to_evict
 
     def remove_key(self, key: K) -> None:
-        self._counter.pop(key, None)
-        self._key_order.pop(key, None)
+        self._key_counter.pop(key, None)
+        if key == self._key_to_evict:
+            self._key_to_evict = None
 
     def clear(self) -> None:
-        self._counter.clear()
-        self._key_order.clear()
-        self._key_number_counter = 0
+        self._key_counter.clear()
+        self._key_to_evict = None
 
     @property
     def has_keys(self) -> bool:
-        return bool(self._counter)
+        return bool(self._key_counter)
 
 
 class MIPTCache(Cache[K, V]):
@@ -129,7 +129,6 @@ class MIPTCache(Cache[K, V]):
         self.policy.register_access(key)
 
         key_to_evict = self.policy.get_key_to_evict()
-
         if key_to_evict is not None and key_to_evict != key:
             self.storage.remove(key_to_evict)
             self.policy.remove_key(key_to_evict)
@@ -144,9 +143,8 @@ class MIPTCache(Cache[K, V]):
         return self.storage.exists(key)
 
     def remove(self, key: K) -> None:
-        if self.storage.exists(key):
-            self.storage.remove(key)
-            self.policy.remove_key(key)
+        self.storage.remove(key)
+        self.policy.remove_key(key)
 
     def clear(self) -> None:
         self.storage.clear()
@@ -171,7 +169,5 @@ class CachedProperty[V]:
             return cast("V", instance.cache.get(cache_key))
 
         value = self._func(instance)
-
         instance.cache.set(cache_key, value)
-
         return value
