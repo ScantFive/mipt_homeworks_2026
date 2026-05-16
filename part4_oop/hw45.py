@@ -88,22 +88,18 @@ class LFUPolicy(Policy[K]):
     _key_to_evict: K | None = field(default=None, init=False)
 
     def register_access(self, key: K) -> None:
-        if key in self._key_counter:
-            self._key_counter[key] += 1
+        current_count = self._key_counter.get(key)
+        if current_count is not None:
+            self._key_counter[key] = current_count + 1
             self._key_to_evict = None
             return
 
-        if len(self._key_counter) >= self.capacity:
-            self._key_to_evict = min(self._key_counter, key=self._get_count_for_min)
+        if len(self._key_counter) >= self.capacity and self._key_counter:
+            self._key_to_evict = min(self._key_counter, key=lambda k: self._key_counter[k])
         else:
             self._key_to_evict = None
 
         self._key_counter[key] = 1
-
-    def get_key_to_evict(self) -> K | None:
-        if len(self._key_counter) > self.capacity:
-            return self._key_to_evict
-        return None
 
     def remove_key(self, key: K) -> None:
         self._key_counter.pop(key, None)
@@ -118,8 +114,12 @@ class LFUPolicy(Policy[K]):
     def has_keys(self) -> bool:
         return bool(self._key_counter)
 
-    def _get_count_for_min(self, key: K) -> int:
-        return self._key_counter[key]
+    def _eviction_candidate(self) -> K | None:
+        if self._key_to_evict not in self._key_counter:
+            self._key_to_evict = None
+        return self._key_to_evict
+
+    get_key_to_evict = _eviction_candidate
 
 
 class MIPTCache(Cache[K, V]):
