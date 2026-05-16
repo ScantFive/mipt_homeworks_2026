@@ -87,11 +87,9 @@ class LFUPolicy(Policy[K]):
     _key_counter: dict[K, int] = field(default_factory=dict, init=False)
     _key_to_evict: K | None = field(default=None, init=False)
 
-    def _get_count_for_min(self, key: K) -> int:
-        return self._key_counter[key]
-
     def register_access(self, key: K) -> None:
-        if key in self._key_counter:
+        value = self._key_counter
+        if value is not None:
             current_count = self._key_counter.get(key, 0)
             self._key_counter[key] = current_count + 1
             self._key_to_evict = None
@@ -104,9 +102,6 @@ class LFUPolicy(Policy[K]):
 
         self._key_counter[key] = 1
 
-    def get_key_to_evict(self) -> K | None:
-        return self._key_to_evict
-
     def remove_key(self, key: K) -> None:
         self._key_counter.pop(key, None)
         if key == self._key_to_evict:
@@ -115,6 +110,9 @@ class LFUPolicy(Policy[K]):
     def clear(self) -> None:
         self._key_counter.clear()
         self._key_to_evict = None
+
+    def _get_count_for_min(self, key: K) -> int:
+        return self._key_counter[key]
 
     @property
     def has_keys(self) -> bool:
