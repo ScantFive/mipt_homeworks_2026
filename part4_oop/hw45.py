@@ -111,12 +111,12 @@ class LFUPolicy(Policy[K]):
         self._key_counter.clear()
         self._key_to_evict = None
 
-    def _get_count_for_min(self, key: K) -> int:
-        return self._key_counter[key]
-
     @property
     def has_keys(self) -> bool:
         return bool(self._key_counter)
+
+    def _get_count_for_min(self, key: K) -> int:
+        return self._key_counter[key]
 
 
 class MIPTCache(Cache[K, V]):
