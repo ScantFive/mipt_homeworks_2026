@@ -32,7 +32,7 @@ def _seconds_passed(time: datetime) -> float:
     return (datetime.now(UTC) - time).total_seconds()
 
 
-def _validate(critical_count, time_to_recover) -> None:
+def _validate(critical_count: int, time_to_recover: int) -> None:
     errors = []
     if not isinstance(critical_count, int) or critical_count <= 0:
         errors.append(ValueError(INVALID_CRITICAL_COUNT))
@@ -43,7 +43,7 @@ def _validate(critical_count, time_to_recover) -> None:
 
 
 class CircuitBreaker:
-    def __init__(self, critical_count=5, time_to_recover=30, triggers_on=Exception) -> None:
+    def __init__(self, critical_count=5, time_to_recover=30, triggers_on: type[Exception]=Exception) -> None:
         _validate(critical_count, time_to_recover)
         self.critical_count = critical_count
         self.time_to_recover = time_to_recover
@@ -59,24 +59,6 @@ class CircuitBreaker:
             return self._process_call(func, func_name, args, kwargs)
 
         return wrapper
-
-    def _is_blocked(self) -> bool:
-        if self.time_of_closure is None:
-            return False
-        if _seconds_passed(self.time_of_closure) < self.time_to_recover:
-            return True
-        self._failures = 0
-        self.time_of_closure = None
-        return False
-
-    def _handle_success(self) -> None:
-        self._failures = 0
-
-    def _handle_failure(self, func_name: str, exc: Exception) -> None:
-        self._failures += 1
-        if self._failures >= self.critical_count:
-            self.time_of_closure = datetime.now(UTC)
-            raise BreakerError(func_name, self.time_of_closure) from exc
 
     def _process_call(
         self,
