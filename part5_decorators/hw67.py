@@ -51,7 +51,7 @@ class CircuitBreaker:
         self.time_to_recover = time_to_recover
         self.triggers_on = triggers_on
         self._failures = 0
-        self.time_of_closure = None
+        self.time_of_closure: datetime | None = None
 
     def __call__(self, func: CallableWithMeta[P, R_co]) -> CallableWithMeta[P, R_co]:
         func_name = f"{func.__module__}.{func.__name__}"
@@ -66,7 +66,7 @@ class CircuitBreaker:
         self,
         func: CallableWithMeta[P, R_co],
         func_name: str,
-        args: tuple[Any],
+        args: tuple[Any, ...],
         kwargs: dict[str, Any],
     ) -> R_co:
         self._check_blocked(func_name)
@@ -74,7 +74,8 @@ class CircuitBreaker:
         try:
             result = func(*args, **kwargs)
         except self.triggers_on as exc:
-            return self._handle_error(func_name, exc)
+            self._handle_error(func_name, exc)
+            raise
         else:
             self._failures = 0
             return result
