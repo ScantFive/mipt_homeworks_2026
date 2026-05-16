@@ -95,7 +95,7 @@ class LFUPolicy(Policy[K]):
             return
 
         if len(self._key_counter) >= self.capacity and self._key_counter:
-            self._key_to_evict = min(self._key_counter, key=lambda k: self._key_counter[k])
+            self._key_to_evict = min(self._key_counter, key=self._count_for_key)
         else:
             self._key_to_evict = None
 
@@ -118,6 +118,9 @@ class LFUPolicy(Policy[K]):
         if self._key_to_evict not in self._key_counter:
             self._key_to_evict = None
         return self._key_to_evict
+
+    def _count_for_key(self, key: K) -> int:
+        return self._key_counter[key]
 
     get_key_to_evict = _eviction_candidate
 
