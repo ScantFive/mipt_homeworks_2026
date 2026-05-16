@@ -90,7 +90,7 @@ class CircuitBreaker:
         self._failures = 0
         self.time_of_closure = None
 
-    def _handle_error(self, func_name: str, exc: Exception) -> R_co:
+    def _handle_error(self, func_name: str, exc: Exception) -> None:
         self._failures += 1
 
         if self._failures >= self.critical_count:
