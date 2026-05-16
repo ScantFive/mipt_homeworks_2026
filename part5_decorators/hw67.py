@@ -43,7 +43,7 @@ def _validate(critical_count: int, time_to_recover: int) -> None:
 
 
 class CircuitBreaker:
-    def __init__(self, critical_count=5, time_to_recover=30, triggers_on: type[Exception]=Exception) -> None:
+    def __init__(self, critical_count=5, time_to_recover=30, triggers_on: type[Exception] = Exception) -> None:
         _validate(critical_count, time_to_recover)
         self.critical_count = critical_count
         self.time_to_recover = time_to_recover
