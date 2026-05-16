@@ -51,6 +51,15 @@ class CircuitBreaker:
         self._failures = 0
         self.time_of_closure = None
 
+    def __call__(self, func: CallableWithMeta[P, R_co]) -> CallableWithMeta[P, R_co]:
+        func_name = f"{func.__module__}.{func.__name__}"
+
+        @wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R_co:
+            return self._process_call(func, func_name, args, kwargs)
+
+        return wrapper
+
     def _is_blocked(self) -> bool:
         if self.time_of_closure is None:
             return False
@@ -69,24 +78,30 @@ class CircuitBreaker:
             self.time_of_closure = datetime.now(UTC)
             raise BreakerError(func_name, self.time_of_closure) from exc
 
-    def __call__(self, func: CallableWithMeta[P, R_co]) -> CallableWithMeta[P, R_co]:
-        func_name = f"{func.__module__}.{func.__name__}"
-
-        @wraps(func)
-        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R_co:
-            if self._is_blocked() and self.time_of_closure is not None:
+    def _process_call(
+        self,
+        func: CallableWithMeta[P, R_co],
+        func_name: str,
+        args: tuple,
+        kwargs: dict,
+    ) -> R_co:
+        if self.time_of_closure is not None:
+            if _seconds_passed(self.time_of_closure) < self.time_to_recover:
                 raise BreakerError(func_name, self.time_of_closure)
+            self._failures = 0
+            self.time_of_closure = None
 
-            try:
-                result = func(*args, **kwargs)
-            except self.triggers_on as exc:
-                self._handle_failure(func_name, exc)
-                raise
-            else:
-                self._handle_success()
-                return result
-
-        return wrapper
+        try:
+            result = func(*args, **kwargs)
+        except self.triggers_on as exc:
+            self._failures += 1
+            if self._failures >= self.critical_count:
+                self.time_of_closure = datetime.now(UTC)
+                raise BreakerError(func_name, self.time_of_closure) from exc
+            raise
+        else:
+            self._failures = 0
+            return result
 
 
 circuit_breaker = CircuitBreaker(5, 30, Exception)
