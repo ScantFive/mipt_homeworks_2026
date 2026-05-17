@@ -92,9 +92,11 @@ def _is_valid_category(cat: str) -> bool:
 
 def income_handler(amount: float, income_date: str) -> str:
     if amount <= 0:
+        financial_transactions_storage.append({})
         return NONPOSITIVE_VALUE_MSG
     parsed_date = extract_date(income_date)
     if parsed_date is None:
+        financial_transactions_storage.append({})
         return INCORRECT_DATE_MSG
     financial_transactions_storage.append({"amount": amount, "date": parsed_date})
     return OP_SUCCESS_MSG
@@ -104,9 +106,11 @@ def cost_handler(category_name: str, amount: float, income_date: str) -> str:
     if not _is_valid_category(category_name):
         return NOT_EXISTS_CATEGORY
     if amount <= 0:
+        financial_transactions_storage.append({})
         return NONPOSITIVE_VALUE_MSG
     parsed_date = extract_date(income_date)
     if parsed_date is None:
+        financial_transactions_storage.append({})
         return INCORRECT_DATE_MSG
     financial_transactions_storage.append({"category": category_name, "amount": amount, "date": parsed_date})
     return OP_SUCCESS_MSG
@@ -156,6 +160,8 @@ def _stats_calculator(report_date: str) -> dict[str, Any]:
     cat_expenses: dict[str, float] = {}
 
     for transaction in financial_transactions_storage:
+        if not transaction:
+            continue
         if "date" not in transaction:
             continue
         td = transaction["date"]
