@@ -204,9 +204,7 @@ def _is_up_to_date(transaction: dict[str, Any], report_date: tuple) -> bool:
 
 def _process_transaction_for_stats(
     transaction: dict[str, Any],
-    report_year: int,
-    report_month: int,
-    report_day: int,
+    report_date: tuple[int, int, int],  # (year, month, day) - объединили 3 аргумента в 1
     total_capital: float,
     month_stats: tuple[float, float, dict[str, float]],
 ) -> tuple[float, tuple[float, float, dict[str, float]]]:
@@ -214,6 +212,8 @@ def _process_transaction_for_stats(
         return total_capital, month_stats
 
     td = transaction[DATE_KEY]
+    report_year, report_month, report_day = report_date
+
     if not isinstance(td, tuple) or len(td) != 3:
         return total_capital, month_stats
 
@@ -241,14 +241,12 @@ def _stats_calculator(report_date: str) -> dict[str, Any]:
     if rd is None:
         return {}
 
-    report_year, report_month, report_day = rd[2], rd[1], rd[0]
+    report_date_for_process = (rd[2], rd[1], rd[0])
     total_capital: float = 0
     month_stats: tuple[float, float, dict[str, float]] = (0, 0, {})
 
     for transaction in financial_transactions_storage:
-        total_capital, month_stats = _process_transaction_for_stats(
-            transaction, report_year, report_month, report_day, total_capital, month_stats
-        )
+        total_capital, month_stats = _process_transaction_for_stats(transaction, report_date_for_process)
 
     month_income, month_expense, cat_expenses = month_stats
     month_diff = month_income - month_expense
