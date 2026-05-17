@@ -37,7 +37,11 @@ financial_transactions_storage: list[dict[str, Any]] = []
 
 
 def is_leap_year(year: int) -> bool:
-    return (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0)
+    if year % 4 != 0:
+        return False
+    if year % 100 == 0:
+        return year % 400 == 0
+    return True
 
 
 def get_days_in_month(month: int, year: int) -> int:
@@ -57,7 +61,9 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     if not all(p.isdigit() for p in parts):
         return None
 
-    day, month, year = int(parts[0]), int(parts[1]), int(parts[2])
+    day = int(parts[0])
+    month = int(parts[1])
+    year = int(parts[2])
     if year < MIN_YEAR or month < 1 or month > MAX_MONTH or day < 1:
         return None
 
@@ -163,9 +169,9 @@ def _stats_calculator(report_date: str) -> dict[str, Any]:
     if rd is None:
         return {}
     report_year, report_month, report_day = rd[2], rd[1], rd[0]
-    total_capital = 0.0
-    month_income = 0.0
-    month_expense = 0.0
+    total_capital = 0
+    month_income = 0
+    month_expense = 0
     cat_expenses: dict[str, float] = {}
 
     for transaction in financial_transactions_storage:
@@ -189,7 +195,7 @@ def _stats_calculator(report_date: str) -> dict[str, Any]:
             if is_expense:
                 month_expense += val
                 cat = transaction["category"]
-                cat_expenses[cat] = cat_expenses.get(cat, 0.0) + val
+                cat_expenses[cat] = cat_expenses.get(cat, 0) + val
             else:
                 month_income += val
 
