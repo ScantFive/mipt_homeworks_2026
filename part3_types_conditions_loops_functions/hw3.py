@@ -171,31 +171,36 @@ def stats_handler(report_date: str) -> str:
 
 
 def _update_capital(transaction: dict[str, Any], current_capital: float) -> float:
-    amount = transaction[AMOUNT_KEY]
+    amount = transaction.get(AMOUNT_KEY)
+    if amount is None or not isinstance(amount, (int, float)):
+        return current_capital
     if CATEGORY_KEY in transaction:
-        return current_capital - amount
-    return current_capital + amount
+        return current_capital - float(amount)
+    return current_capital + float(amount)
 
 
 def _update_stats(
-    transaction: dict[str, Any], report_year: int, report_month: int, stats: tuple[float, float, dict]
+    transaction: dict[str, Any], report_year: int, report_month: int, stats: tuple[float, float, dict[str, float]]
 ) -> tuple[float, float, dict[str, float]]:
     income, expense, details = stats
-    t_date = transaction[DATE_KEY]
+    t_date = transaction.get(DATE_KEY)
+    if not isinstance(t_date, tuple) or len(t_date) != DATE_PARTS_COUNT:
+        return income, expense, details
+
     if t_date[2] == report_year and t_date[1] == report_month:
-        amount = transaction[AMOUNT_KEY]
-        if CATEGORY_KEY in transaction:
-            expense += amount
-            cat = transaction.get(CATEGORY_KEY)
-            if cat is None:
-                return income, expense, details
-            details[cat] = details.get(cat, 0) + amount
-        else:
-            income += amount
+        amount = transaction.get(AMOUNT_KEY)
+        if isinstance(amount, (int, float)):
+            if CATEGORY_KEY in transaction:
+                expense += float(amount)
+                cat = transaction.get(CATEGORY_KEY)
+                if isinstance(cat, str):
+                    details[cat] = details.get(cat, 0) + float(amount)
+            else:
+                income += float(amount)
     return income, expense, details
 
 
-def _is_up_to_date(transaction: dict[str, Any], report_date: tuple) -> bool:
+def _is_up_to_date(transaction: dict[str, Any], report_date: tuple[int, int, int]) -> bool:
     if not transaction or DATE_KEY not in transaction:
         return False
     transaction_date = transaction[DATE_KEY]
@@ -214,7 +219,7 @@ def _process_transaction_for_stats(
     td = transaction[DATE_KEY]
     report_year, report_month, report_day = report_date
 
-    if not isinstance(td, tuple) or len(td) != 3:
+    if not isinstance(td, tuple) or len(td) != DATE_PARTS_COUNT:
         return total_capital, month_stats
 
     transaction_day, transaction_month, transaction_year = td
