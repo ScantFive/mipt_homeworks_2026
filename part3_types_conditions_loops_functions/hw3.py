@@ -198,7 +198,7 @@ def _update_stats(
     return income, expense, details
 
 
-def _is_up_to_date(transaction: dict[str, Any], report_date: tuple[int,int,int]) -> bool:
+def _is_up_to_date(transaction: dict[str, Any], report_date: tuple[int, int, int]) -> bool:
     if not transaction or DATE_KEY not in transaction:
         return False
     transaction_date = transaction[DATE_KEY]
@@ -276,7 +276,7 @@ def _handle_income_cmd(parts: list[str]) -> None:
 
 
 def _handle_cost_cmd(parts: list[str]) -> None:
-    if len(parts) == CATEGORIES_CMD_ARGS and parts[1] == "categories":
+    if len(parts) == CATEGORIES_CMD_ARGS and parts[1] == CATEGORY_KEY:
         print(cost_categories_handler())
         return
     if len(parts) != COST_CMD_ARGS:
