@@ -135,7 +135,7 @@ def cost_handler(category_name: str, amount: float, income_date: str) -> str:
 
 
 def cost_categories_handler() -> str:
-    output = []
+    output: list[str] = []
     for common, scats in EXPENSE_CATEGORIES.items():
         output.extend(f"{common}::{target}" for target in scats)
     return "\n".join(output)
@@ -170,7 +170,7 @@ def stats_handler(report_date: str) -> str:
     return "\n".join(lines)
 
 
-def _update_capital(transaction: dict, current_capital: float) -> float:
+def _update_capital(transaction: dict[str, Any], current_capital: float) -> float:
     amount = transaction[AMOUNT_KEY]
     if CATEGORY_KEY in transaction:
         return current_capital - amount
@@ -178,53 +178,77 @@ def _update_capital(transaction: dict, current_capital: float) -> float:
 
 
 def _update_stats(
-    transaction: dict, report_year: int, report_month: int, stats: tuple[float, float, dict]
-) -> tuple[float, float, dict]:
+    transaction: dict[str, Any], report_year: int, report_month: int, stats: tuple[float, float, dict]
+) -> tuple[float, float, dict[str, float]]:
     income, expense, details = stats
     t_date = transaction[DATE_KEY]
     if t_date[2] == report_year and t_date[1] == report_month:
         amount = transaction[AMOUNT_KEY]
         if CATEGORY_KEY in transaction:
             expense += amount
-            cat = transaction[CATEGORY_KEY]
+            cat = transaction.get(CATEGORY_KEY)
+            if cat is None:
+                return income, expense, details
             details[cat] = details.get(cat, 0) + amount
         else:
             income += amount
     return income, expense, details
 
 
-def _is_up_to_date(transaction: dict, report_date: tuple) -> bool:
+def _is_up_to_date(transaction: dict[str, Any], report_date: tuple) -> bool:
     if not transaction or DATE_KEY not in transaction:
         return False
     transaction_date = transaction[DATE_KEY]
     return (transaction_date[2], transaction_date[1], transaction_date[0]) <= report_date
 
 
+def _process_transaction_for_stats(
+    transaction: dict[str, Any],
+    report_year: int,
+    report_month: int,
+    report_day: int,
+    total_capital: float,
+    month_stats: tuple[float, float, dict[str, float]],
+) -> tuple[float, tuple[float, float, dict[str, float]]]:
+    if not transaction or DATE_KEY not in transaction:
+        return total_capital, month_stats
+
+    td = transaction[DATE_KEY]
+    if not isinstance(td, tuple) or len(td) != 3:
+        return total_capital, month_stats
+
+    transaction_day, transaction_month, transaction_year = td
+    if (transaction_year, transaction_month, transaction_day) > (report_year, report_month, report_day):
+        return total_capital, month_stats
+
+    val = transaction[AMOUNT_KEY]
+    if not isinstance(val, (int, float)):
+        return total_capital, month_stats
+
+    is_expense = CATEGORY_KEY in transaction
+    if is_expense:
+        total_capital -= float(val)
+    else:
+        total_capital += float(val)
+
+    month_stats = _update_stats(transaction, report_year, report_month, month_stats)
+
+    return total_capital, month_stats
+
+
 def _stats_calculator(report_date: str) -> dict[str, Any]:
     rd = extract_date(report_date)
     if rd is None:
         return {}
+
     report_year, report_month, report_day = rd[2], rd[1], rd[0]
-    total_capital = 0
-    month_stats = (0, 0, {})
+    total_capital: float = 0
+    month_stats: tuple[float, float, dict[str, float]] = (0, 0, {})
+
     for transaction in financial_transactions_storage:
-        if not transaction:
-            continue
-        if DATE_KEY not in transaction:
-            continue
-        td = transaction[DATE_KEY]
-        transaction_day, transaction_month, transaction_year = td
-        if (transaction_year, transaction_month, transaction_day) > (report_year, report_month, report_day):
-            continue
-
-        val = transaction[AMOUNT_KEY]
-        is_expense = CATEGORY_KEY in transaction
-        if is_expense:
-            total_capital -= val
-        else:
-            total_capital += val
-
-        month_stats = _update_stats(transaction, report_year, report_month, month_stats)
+        total_capital, month_stats = _process_transaction_for_stats(
+            transaction, report_year, report_month, report_day, total_capital, month_stats
+        )
 
     month_income, month_expense, cat_expenses = month_stats
     month_diff = month_income - month_expense
