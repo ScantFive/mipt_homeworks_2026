@@ -104,6 +104,7 @@ def income_handler(amount: float, income_date: str) -> str:
 
 def cost_handler(category_name: str, amount: float, income_date: str) -> str:
     if not _is_valid_category(category_name):
+        financial_transactions_storage.append({})
         return NOT_EXISTS_CATEGORY
     if amount <= 0:
         financial_transactions_storage.append({})
