@@ -16,7 +16,9 @@ INCOME_CMD_ARGS = 3
 COST_CMD_ARGS = 4
 STATS_CMD_ARGS = 2
 CATEGORIES_CMD_ARGS = 2
-DAYS_IN_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+MONTH31 = (1, 3, 5, 7, 8, 10, 12)
+MONTH30 = (4, 6, 9, 11)
+FEBRUARY = 2
 
 EXPENSE_CATEGORIES = {
     "Food": ("Supermarket", "Restaurants", "FastFood", "Coffee", "Delivery"),
@@ -38,6 +40,16 @@ def is_leap_year(year: int) -> bool:
     return (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0)
 
 
+def get_days_in_month(month: int, year: int) -> int:
+    if month in MONTH31:
+        return 31
+    if month in MONTH30:
+        return 30
+    if month == FEBRUARY:
+        return 29 if is_leap_year(year) else 28
+    return 0
+
+
 def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     parts = maybe_dt.split("-")
     if len(parts) != DATE_PARTS_COUNT:
@@ -49,11 +61,7 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     if year < MIN_YEAR or month < 1 or month > MAX_MONTH or day < 1:
         return None
 
-    days_in_month = DAYS_IN_MONTH.copy()
-    if is_leap_year(year):
-        days_in_month[2] = 29
-
-    if day > days_in_month[month]:
+    if day > get_days_in_month(month, year):
         return None
 
     return day, month, year
