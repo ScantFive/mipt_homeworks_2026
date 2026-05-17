@@ -19,6 +19,9 @@ CATEGORIES_CMD_ARGS = 2
 MONTH31 = (1, 3, 5, 7, 8, 10, 12)
 MONTH30 = (4, 6, 9, 11)
 FEBRUARY = 2
+AMOUNT_KEY = "amount"
+DATE_KEY = "date"
+CATEGORY_KEY = "category"
 
 EXPENSE_CATEGORIES = {
     "Food": ("Supermarket", "Restaurants", "FastFood", "Coffee", "Delivery"),
@@ -112,7 +115,7 @@ def income_handler(amount: float, income_date: str) -> str:
     if parsed_date is None:
         financial_transactions_storage.append({})
         return INCORRECT_DATE_MSG
-    financial_transactions_storage.append({"amount": amount, "date": parsed_date})
+    financial_transactions_storage.append({AMOUNT_KEY: amount, DATE_KEY: parsed_date})
     return OP_SUCCESS_MSG
 
 
@@ -127,12 +130,15 @@ def cost_handler(category_name: str, amount: float, income_date: str) -> str:
     if parsed_date is None:
         financial_transactions_storage.append({})
         return INCORRECT_DATE_MSG
-    financial_transactions_storage.append({"category": category_name, "amount": amount, "date": parsed_date})
+    financial_transactions_storage.append({CATEGORY_KEY: category_name, AMOUNT_KEY: amount, DATE_KEY: parsed_date})
     return OP_SUCCESS_MSG
 
 
 def cost_categories_handler() -> str:
-    return "\n".join(f"{k}::{v}" for k, kv in EXPENSE_CATEGORIES.items() for v in kv)
+    output = []
+    for common, scats in EXPENSE_CATEGORIES.items():
+        output.extend(f"{common}::{target}" for target in scats)
+    return "\n".join(output)
 
 
 def stats_handler(report_date: str) -> str:
@@ -157,11 +163,41 @@ def stats_handler(report_date: str) -> str:
     ]
 
     if data["cat_expenses"]:
-        sorted_cats = sorted(data["cat_expenses"].keys(), key=lambda s: s.lower())
-        for i, cat in enumerate(sorted_cats, 1):
-            lines.append(f"{i}. {cat}: {fmt_detail(data['cat_expenses'][cat])}")
+        sorted_cats = sorted(data["cat_expenses"].items(), key=lambda x: x[0].lower())
+        for i, (cat, amount) in enumerate(sorted_cats, 1):
+            lines.append(f"{i}. {cat}: {fmt_detail(amount)}")
 
     return "\n".join(lines)
+
+
+def _update_capital(transaction: dict, current_capital: float) -> float:
+    amount = transaction[AMOUNT_KEY]
+    if CATEGORY_KEY in transaction:
+        return current_capital - amount
+    return current_capital + amount
+
+
+def _update_stats(
+    transaction: dict, report_year: int, report_month: int, stats: tuple[float, float, dict]
+) -> tuple[float, float, dict]:
+    income, expense, details = stats
+    t_date = transaction[DATE_KEY]
+    if t_date[2] == report_year and t_date[1] == report_month:
+        amount = transaction[AMOUNT_KEY]
+        if CATEGORY_KEY in transaction:
+            expense += amount
+            cat = transaction[CATEGORY_KEY]
+            details[cat] = details.get(cat, 0) + amount
+        else:
+            income += amount
+    return income, expense, details
+
+
+def _is_up_to_date(transaction: dict, report_date: tuple) -> bool:
+    if not transaction or DATE_KEY not in transaction:
+        return False
+    transaction_date = transaction[DATE_KEY]
+    return (transaction_date[2], transaction_date[1], transaction_date[0]) <= report_date
 
 
 def _stats_calculator(report_date: str) -> dict[str, Any]:
@@ -170,36 +206,29 @@ def _stats_calculator(report_date: str) -> dict[str, Any]:
         return {}
     report_year, report_month, report_day = rd[2], rd[1], rd[0]
     total_capital = 0
-    month_income = 0
-    month_expense = 0
-    cat_expenses: dict[str, float] = {}
-
+    month_stats = (0, 0, {})
     for transaction in financial_transactions_storage:
         if not transaction:
             continue
-        if "date" not in transaction:
+        if DATE_KEY not in transaction:
             continue
-        td = transaction["date"]
+        td = transaction[DATE_KEY]
         transaction_day, transaction_month, transaction_year = td
         if (transaction_year, transaction_month, transaction_day) > (report_year, report_month, report_day):
             continue
 
-        val = transaction["amount"]
-        is_expense = "category" in transaction
+        val = transaction[AMOUNT_KEY]
+        is_expense = CATEGORY_KEY in transaction
         if is_expense:
             total_capital -= val
         else:
             total_capital += val
 
-        if transaction_year == report_year and transaction_month == report_month:
-            if is_expense:
-                month_expense += val
-                cat = transaction["category"]
-                cat_expenses[cat] = cat_expenses.get(cat, 0) + val
-            else:
-                month_income += val
+        month_stats = _update_stats(transaction, report_year, report_month, month_stats)
 
+    month_income, month_expense, cat_expenses = month_stats
     month_diff = month_income - month_expense
+
     return {
         "total_capital": total_capital,
         "diff_word": "profit" if month_diff >= 0 else "loss",
@@ -258,14 +287,18 @@ def _process_line(line: str) -> None:
 
 
 def main() -> None:
-    while True:
+    def get_line() -> str | None:
         try:
-            line = input().strip()
-            if not line:
-                continue
-            _process_line(line)
+            return input().strip()
         except EOFError:
+            return None
+
+    while True:
+        line = get_line()
+        if line is None:
             break
+        if line:
+            _process_line(line)
 
 
 if __name__ == "__main__":
