@@ -175,9 +175,10 @@ def _get_sorted_categories(cat_expenses: dict[str, float]) -> list[tuple[str, fl
 
 
 def _update_stats(
-    transaction: dict[str, Any], report_year: int, report_month: int, stats: tuple[float, float, dict[str, float]]
+    transaction: dict[str, Any], report_date: tuple[int, int], stats: tuple[float, float, dict[str, float]]
 ) -> tuple[float, float, dict[str, float]]:
     income, expense, details = stats
+    report_year, report_month = report_date
 
     if not _is_up_to_date(transaction, report_year, report_month):
         return income, expense, details
