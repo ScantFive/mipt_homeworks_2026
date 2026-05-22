@@ -23,6 +23,7 @@ AMOUNT_KEY = "amount"
 DATE_KEY = "date"
 CATEGORY_KEY = "category"
 StatsSaver = tuple[float, float, dict[str, float]]
+TransactionSaver = dict[str, Any]
 
 EXPENSE_CATEGORIES = {
     "Food": ("Supermarket", "Restaurants", "FastFood", "Coffee", "Delivery"),
@@ -175,7 +176,7 @@ def _get_sorted_categories(cat_expenses: dict[str, float]) -> list[tuple[str, fl
     return sorted(cat_expenses.items(), key=lambda x: x[0].lower())
 
 
-def _update_stats(transaction: dict[str, Any], report_date: tuple[int, int], stats: StatsSaver) -> StatsSaver:
+def _update_stats(transaction: TransactionSaver, report_date: tuple[int, int], stats: StatsSaver) -> StatsSaver:
     income, expense, details = stats
     report_year, report_month = report_date
 
