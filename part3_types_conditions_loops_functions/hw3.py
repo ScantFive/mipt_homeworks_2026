@@ -202,14 +202,18 @@ def _is_up_to_date(transaction: dict[str, Any], report_year: int, report_month: 
     t_date = transaction.get(DATE_KEY)
     if not isinstance(t_date, tuple) or len(t_date) != DATE_PARTS_COUNT:
         return False
-    return t_date[2] == report_year and t_date[1] == report_month
+    t_year = t_date[2]
+    t_month = t_date[1]
+    if not isinstance(t_year, int) or not isinstance(t_month, int):
+        return False
+    return t_year == report_year and t_month == report_month
 
 
 def _process_transaction_stats(
     transaction: TransactionSaver, report_date: tuple[int, int, int]
 ) -> TransactionProcessResult:
-    total_capital = 0
-    month_stats = (0, 0, {})
+    total_capital: float = 0
+    month_stats: StatsSaver = (0, 0, {})
 
     if not transaction or DATE_KEY not in transaction:
         return total_capital, month_stats
@@ -247,7 +251,7 @@ def _stats_calculator(report_date: str) -> dict[str, Any]:
 
     report_date_for_process = (rd[2], rd[1], rd[0])
     total_capital: float = 0
-    month_stats: tuple[float, float, dict[str, float]] = (0, 0, {})
+    month_stats: StatsSaver = (0, 0, {})
 
     for transaction in financial_transactions_storage:
         total_capital, month_stats = _process_transaction_stats(transaction, report_date_for_process)
