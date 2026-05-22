@@ -24,6 +24,7 @@ DATE_KEY = "date"
 CATEGORY_KEY = "category"
 StatsSaver = tuple[float, float, dict[str, float]]
 TransactionSaver = dict[str, Any]
+TransactionProcessResult = tuple[float, StatsSaver]
 
 EXPENSE_CATEGORIES = {
     "Food": ("Supermarket", "Restaurants", "FastFood", "Coffee", "Delivery"),
@@ -205,8 +206,8 @@ def _is_up_to_date(transaction: dict[str, Any], report_year: int, report_month: 
 
 
 def _process_transaction_stats(
-    transaction: dict[str, Any], report_date: tuple[int, int, int]
-) -> tuple[float, tuple[float, float, dict[str, float]]]:
+    transaction: TransactionSaver, report_date: tuple[int, int, int]
+) -> TransactionProcessResult:
     total_capital = 0
     month_stats = (0, 0, {})
 
