@@ -163,12 +163,14 @@ def stats_handler(report_date: str) -> str:
     ]
 
     if data["cat_expenses"]:
-        sorted_cats = sorted(data["cat_expenses"].items(), key=lambda x: x[0].lower())
+        sorted_cats = _get_sorted_categories(data["cat_expenses"])
         for i, (cat, amount) in enumerate(sorted_cats, 1):
             lines.append(f"{i}. {cat}: {fmt_detail(amount)}")
 
     return "\n".join(lines)
 
+def _get_sorted_categories(cat_expenses: dict[str, float]) -> list[tuple[str, float]]:
+    return sorted(cat_expenses.items(), key=lambda x: x[0].lower())
 
 def _update_capital(transaction: dict[str, Any], current_capital: float) -> float:
     amount = transaction[AMOUNT_KEY]
