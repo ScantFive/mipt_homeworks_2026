@@ -211,10 +211,11 @@ def _is_up_to_date(transaction: dict[str, Any], report_date: tuple[int, int, int
 
 def _process_transaction_stats(
     transaction: dict[str, Any],
-    report_date: tuple[int, int, int],
-    total_capital: float,
-    month_stats: tuple[float, float, dict[str, float]],
+    report_date: tuple[int, int, int]
 ) -> tuple[float, tuple[float, float, dict[str, float]]]:
+    total_capital = 0
+    month_stats = (0, 0, {})
+
     if not transaction or DATE_KEY not in transaction:
         return total_capital, month_stats
 
