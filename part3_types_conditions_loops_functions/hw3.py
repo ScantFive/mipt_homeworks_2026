@@ -175,7 +175,7 @@ def _get_sorted_categories(cat_expenses: dict[str, float]) -> list[tuple[str, fl
 
 
 def _update_stats(
-        transaction: dict[str, Any], report_year: int, report_month: int, stats: tuple[float, float, dict[str, float]]
+    transaction: dict[str, Any], report_year: int, report_month: int, stats: tuple[float, float, dict[str, float]]
 ) -> tuple[float, float, dict[str, float]]:
     income, expense, details = stats
 
@@ -196,9 +196,7 @@ def _update_stats(
     return income, expense, details
 
 
-def _is_up_to_date(
-    transaction: dict[str, Any], report_year: int, report_month: int
-) -> bool:
+def _is_up_to_date(transaction: dict[str, Any], report_year: int, report_month: int) -> bool:
     t_date = transaction.get(DATE_KEY)
     if not isinstance(t_date, tuple) or len(t_date) != DATE_PARTS_COUNT:
         return False
