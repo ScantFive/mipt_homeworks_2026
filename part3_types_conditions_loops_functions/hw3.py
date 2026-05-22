@@ -253,7 +253,7 @@ def _stats_calculator(report_date: str) -> dict[str, Any]:
     month_stats: tuple[float, float, dict[str, float]] = (0, 0, {})
 
     for transaction in financial_transactions_storage:
-        total_capital, month_stats = _process_transaction_stats(transaction, report_date_for_process,,
+        total_capital, month_stats = _process_transaction_stats(transaction, report_date_for_process)
 
     month_income, month_expense, cat_expenses = month_stats
     month_diff = month_income - month_expense
