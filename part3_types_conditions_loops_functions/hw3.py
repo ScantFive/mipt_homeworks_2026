@@ -169,8 +169,10 @@ def stats_handler(report_date: str) -> str:
 
     return "\n".join(lines)
 
+
 def _get_sorted_categories(cat_expenses: dict[str, float]) -> list[tuple[str, float]]:
     return sorted(cat_expenses.items(), key=lambda x: x[0].lower())
+
 
 def _update_capital(transaction: dict[str, Any], current_capital: float) -> float:
     amount = transaction[AMOUNT_KEY]
