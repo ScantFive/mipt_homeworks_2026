@@ -210,8 +210,7 @@ def _is_up_to_date(transaction: dict[str, Any], report_date: tuple[int, int, int
 
 
 def _process_transaction_stats(
-    transaction: dict[str, Any],
-    report_date: tuple[int, int, int]
+    transaction: dict[str, Any], report_date: tuple[int, int, int]
 ) -> tuple[float, tuple[float, float, dict[str, float]]]:
     total_capital = 0
     month_stats = (0, 0, {})
