@@ -174,39 +174,35 @@ def _get_sorted_categories(cat_expenses: dict[str, float]) -> list[tuple[str, fl
     return sorted(cat_expenses.items(), key=lambda x: x[0].lower())
 
 
-def _update_capital(transaction: dict[str, Any], current_capital: float) -> float:
-    amount = transaction[AMOUNT_KEY]
-    if CATEGORY_KEY in transaction:
-        return current_capital - float(amount)
-    return current_capital + float(amount)
-
-
 def _update_stats(
-    transaction: dict[str, Any], report_year: int, report_month: int, stats: tuple[float, float, dict[str, float]]
+        transaction: dict[str, Any], report_year: int, report_month: int, stats: tuple[float, float, dict[str, float]]
 ) -> tuple[float, float, dict[str, float]]:
     income, expense, details = stats
-    t_date = transaction.get(DATE_KEY)
-    if not isinstance(t_date, tuple) or len(t_date) != DATE_PARTS_COUNT:
+
+    if not _is_up_to_date(transaction, report_year, report_month):
         return income, expense, details
 
-    if t_date[2] == report_year and t_date[1] == report_month:
-        amount = transaction.get(AMOUNT_KEY)
-        if isinstance(amount, (int, float)):
-            if CATEGORY_KEY in transaction:
-                expense += float(amount)
-                cat = transaction.get(CATEGORY_KEY)
-                if isinstance(cat, str):
-                    details[cat] = details.get(cat, 0) + float(amount)
-            else:
-                income += float(amount)
+    amount = transaction.get(AMOUNT_KEY)
+    if not isinstance(amount, (int, float)):
+        return income, expense, details
+
+    if CATEGORY_KEY in transaction:
+        expense += float(amount)
+        cat = transaction.get(CATEGORY_KEY)
+        if isinstance(cat, str):
+            details[cat] = details.get(cat, 0) + float(amount)
+    else:
+        income += float(amount)
     return income, expense, details
 
 
-def _is_up_to_date(transaction: dict[str, Any], report_date: tuple[int, int, int]) -> bool:
-    if not transaction or DATE_KEY not in transaction:
+def _is_up_to_date(
+    transaction: dict[str, Any], report_year: int, report_month: int
+) -> bool:
+    t_date = transaction.get(DATE_KEY)
+    if not isinstance(t_date, tuple) or len(t_date) != DATE_PARTS_COUNT:
         return False
-    transaction_date = transaction[DATE_KEY]
-    return (transaction_date[2], transaction_date[1], transaction_date[0]) <= report_date
+    return t_date[2] == report_year and t_date[1] == report_month
 
 
 def _process_transaction_stats(
