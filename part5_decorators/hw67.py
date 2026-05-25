@@ -1,4 +1,6 @@
 import json
+from datetime import UTC, datetime
+from functools import wraps
 from typing import Any, ParamSpec, Protocol, TypeVar
 from urllib.request import urlopen
 
@@ -20,19 +22,83 @@ class CallableWithMeta(Protocol[P, R_co]):
 
 
 class BreakerError(Exception):
-    pass
+    def __init__(self, func_name: str, block_time: datetime) -> None:
+        super().__init__(TOO_MUCH)
+        self.func_name = func_name
+        self.block_time = block_time
+
+
+def _seconds_passed(time: datetime) -> float:
+    return (datetime.now(UTC) - time).total_seconds()
+
+
+def _validate(critical_count: int, time_to_recover: int) -> None:
+    errors = []
+    if not isinstance(critical_count, int) or critical_count <= 0:
+        errors.append(ValueError(INVALID_CRITICAL_COUNT))
+    if not isinstance(time_to_recover, int) or time_to_recover <= 0:
+        errors.append(ValueError(INVALID_RECOVERY_TIME))
+    if errors:
+        raise ExceptionGroup(VALIDATIONS_FAILED, errors)
 
 
 class CircuitBreaker:
     def __init__(
-        self,
-        critical_count: int,
-        time_to_recover: int,
-        triggers_on: type[Exception],
-    ): ...
+        self, critical_count: int = 5, time_to_recover: int = 30, triggers_on: type[Exception] = Exception
+    ) -> None:
+        _validate(critical_count, time_to_recover)
+        self.critical_count = critical_count
+        self.time_to_recover = time_to_recover
+        self.triggers_on = triggers_on
+        self._failures = 0
+        self.time_of_closure: datetime | None = None
 
     def __call__(self, func: CallableWithMeta[P, R_co]) -> CallableWithMeta[P, R_co]:
-        raise NotImplementedError
+        func_name = f"{func.__module__}.{func.__name__}"
+
+        @wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R_co:
+            return self._process_call(func, func_name, args, kwargs)
+
+        return wrapper
+
+    def _process_call(
+        self,
+        func: CallableWithMeta[P, R_co],
+        func_name: str,
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
+    ) -> R_co:
+        self._check_blocked(func_name)
+
+        try:
+            result = func(*args, **kwargs)
+        except self.triggers_on as exc:
+            self._handle_error(func_name, exc)
+            raise
+        else:
+            self._failures = 0
+            return result
+
+    def _check_blocked(self, func_name: str) -> None:
+        if self.time_of_closure is None:
+            return
+
+        if _seconds_passed(self.time_of_closure) < self.time_to_recover:
+            raise BreakerError(func_name, self.time_of_closure)
+
+        self._failures = 0
+        self.time_of_closure = None
+
+    def _handle_error(self, func_name: str, exc: Exception) -> None:
+        self._failures += 1
+
+        if self._failures >= self.critical_count:
+            block_time = datetime.now(UTC)
+            self.time_of_closure = block_time
+            raise BreakerError(func_name, block_time) from exc
+
+        raise exc
 
 
 circuit_breaker = CircuitBreaker(5, 30, Exception)
